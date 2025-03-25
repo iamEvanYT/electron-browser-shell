@@ -57,15 +57,16 @@ export class PopupView {
 
     this.browserWindow = new BrowserWindow({
       show: false,
-      frame: false,
+      frame: true,
       parent: opts.parent,
-      movable: false,
+      movable: true,
       maximizable: false,
       minimizable: false,
       resizable: false,
       skipTaskbar: true,
       backgroundColor: '#ffffff',
-      roundedCorners: false,
+      roundedCorners: true,
+      useContentSize: true,
       webPreferences: {
         session: opts.session,
         sandbox: true,
