@@ -349,9 +349,7 @@ export function registerWebStoreApi(webStoreState: WebStoreState) {
         })
 
         if (webStoreState.afterUninstall) {
-          queueMicrotask(() => {
-            webStoreState.afterUninstall?.({ id })
-          })
+          webStoreState.afterUninstall?.({ id })
         }
 
         return Result.SUCCESS
