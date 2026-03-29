@@ -17,7 +17,7 @@ import {
   WebStoreState,
   GetExtensionInstallStatus,
   AfterUninstall,
-  CustomSetExtensionEnabled,
+  SetExtensionEnabled,
 } from './types'
 import { ExtensionInstallStatus } from '../common/constants'
 export { ExtensionInstallStatus }
@@ -109,9 +109,9 @@ interface ElectronChromeWebStoreOptions {
   beforeInstall?: BeforeInstall
 
   /**
-   * Called when setting the enabled status of an extension.
+   * Used to implement `chrome.management.setEnabled`
    */
-  customSetExtensionEnabled?: CustomSetExtensionEnabled
+  setExtensionEnabled?: SetExtensionEnabled
 
   /**
    * Called when determining the install status of an extension.
@@ -148,10 +148,8 @@ export async function installChromeWebStore(opts: ElectronChromeWebStoreOptions 
   const afterInstall = typeof opts.afterInstall === 'function' ? opts.afterInstall : undefined
   const afterUninstall = typeof opts.afterUninstall === 'function' ? opts.afterUninstall : undefined
 
-  const customSetExtensionEnabled =
-    typeof opts.customSetExtensionEnabled === 'function'
-      ? opts.customSetExtensionEnabled
-      : undefined
+  const setExtensionEnabled =
+    typeof opts.setExtensionEnabled === 'function' ? opts.setExtensionEnabled : undefined
 
   const getExtensionInstallStatus =
     typeof opts.getExtensionInstallStatus === 'function'
@@ -168,7 +166,7 @@ export async function installChromeWebStore(opts: ElectronChromeWebStoreOptions 
     beforeInstall,
     afterInstall,
     afterUninstall,
-    customSetExtensionEnabled,
+    setExtensionEnabled,
     getExtensionInstallStatus,
   }
 

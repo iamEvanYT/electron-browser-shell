@@ -22,7 +22,7 @@ export type ExtensionStatusDetails = {
   extensionsPath: string
 }
 
-export type CustomSetExtensionEnabled = (
+export type SetExtensionEnabled = (
   extensionId: ExtensionId,
   details: ExtensionStatusDetails,
   enabled: boolean,
@@ -44,6 +44,6 @@ export interface WebStoreState {
   beforeInstall?: BeforeInstall
   afterInstall?: AfterInstall
   afterUninstall?: AfterUninstall
-  customSetExtensionEnabled?: CustomSetExtensionEnabled
+  setExtensionEnabled?: SetExtensionEnabled
   getExtensionInstallStatus?: GetExtensionInstallStatus
 }
