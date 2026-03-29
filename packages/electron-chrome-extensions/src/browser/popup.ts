@@ -60,9 +60,9 @@ export class PopupView extends EventEmitter {
 
     this.browserWindow = new BrowserWindow({
       show: false,
-      frame: false,
+      frame: true,
       parent: opts.parent,
-      movable: false,
+      movable: true,
       maximizable: false,
       minimizable: false,
       // https://github.com/electron/electron/issues/47579
@@ -70,7 +70,9 @@ export class PopupView extends EventEmitter {
       resizable: false,
       skipTaskbar: true,
       backgroundColor: '#ffffff',
-      roundedCorners: false,
+      roundedCorners: true,
+      useContentSize: true,
+      title: '',
       webPreferences: {
         session: opts.session,
         sandbox: true,
@@ -80,6 +82,10 @@ export class PopupView extends EventEmitter {
         enablePreferredSizeMode: true,
       },
     })
+
+    if (process.platform !== 'darwin') {
+      this.browserWindow.setMenuBarVisibility(false)
+    }
 
     const untypedWebContents = this.browserWindow.webContents as any
     untypedWebContents.on('preferred-size-changed', this.updatePreferredSize)
@@ -181,8 +187,8 @@ export class PopupView extends EventEmitter {
 
     this.emit('will-resize', size)
 
-    this.browserWindow?.setBounds({
-      ...this.browserWindow.getBounds(),
+    this.browserWindow?.setContentBounds({
+      ...this.browserWindow.getContentBounds(),
       ...size,
     })
 
@@ -243,8 +249,8 @@ export class PopupView extends EventEmitter {
 
     this.emit('will-move', position)
 
-    this.browserWindow.setBounds({
-      ...this.browserWindow.getBounds(),
+    this.browserWindow.setContentBounds({
+      ...this.browserWindow.getContentBounds(),
       ...position,
     })
 
@@ -275,6 +281,9 @@ export class PopupView extends EventEmitter {
     this.updatePosition()
 
     // Wait to reveal popup until it's sized and positioned correctly
-    if (this.hidden) this.show()
+    if (this.hidden) {
+      this.updatePosition()
+      this.show()
+    }
   }
 }
