@@ -1,5 +1,5 @@
 {
-  "name": "electron-chrome-extensions",
+  "name": "@iamevan/electron-chrome-extensions",
   "version": "4.9.0",
   "description": "Chrome extension support for Electron",
   "main": "./dist/cjs/index.js",

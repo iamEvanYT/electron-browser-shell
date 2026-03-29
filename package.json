@@ -10,6 +10,9 @@
     "packages/electron-chrome-web-store"
   ],
   "scripts": {
+    "publish:chrome-web-store": "cd ./packages/electron-chrome-web-store && bun publish --access public",
+    "publish:context-menu": "cd ./packages/electron-chrome-context-menu && bun publish --access public",
+    "publish:extensions": "cd ./packages/electron-chrome-extensions && bun publish --access public",
     "build": "yarn run build:context-menu && yarn run build:chrome-web-store && yarn run build:extensions && yarn run build:shell",
     "build:chrome-web-store": "yarn --cwd ./packages/electron-chrome-web-store build",
     "build:context-menu": "yarn --cwd ./packages/electron-chrome-context-menu build",
