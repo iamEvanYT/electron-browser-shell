@@ -15,7 +15,7 @@ import {
   AfterInstall,
   ExtensionId,
   WebStoreState,
-  OverrideExtensionInstallStatus,
+  GetExtensionInstallStatus,
   AfterUninstall,
   CustomSetExtensionEnabled,
 } from './types'
@@ -116,7 +116,7 @@ interface ElectronChromeWebStoreOptions {
   /**
    * Called when determining the install status of an extension.
    */
-  overrideExtensionInstallStatus?: OverrideExtensionInstallStatus
+  getExtensionInstallStatus?: GetExtensionInstallStatus
 
   /**
    * Called after an extension is installed.
@@ -153,9 +153,9 @@ export async function installChromeWebStore(opts: ElectronChromeWebStoreOptions 
       ? opts.customSetExtensionEnabled
       : undefined
 
-  const overrideExtensionInstallStatus =
-    typeof opts.overrideExtensionInstallStatus === 'function'
-      ? opts.overrideExtensionInstallStatus
+  const getExtensionInstallStatus =
+    typeof opts.getExtensionInstallStatus === 'function'
+      ? opts.getExtensionInstallStatus
       : undefined
 
   const webStoreState: WebStoreState = {
@@ -169,7 +169,7 @@ export async function installChromeWebStore(opts: ElectronChromeWebStoreOptions 
     afterInstall,
     afterUninstall,
     customSetExtensionEnabled,
-    overrideExtensionInstallStatus,
+    getExtensionInstallStatus,
   }
 
   // Add preload script to session
