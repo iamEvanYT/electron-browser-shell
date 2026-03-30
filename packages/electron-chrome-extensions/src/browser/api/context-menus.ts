@@ -124,7 +124,7 @@ export class ContextMenusAPI {
       icon,
       enabled: props.enabled,
       click: () => {
-        this.onClicked(extension.id, props.id, webContents, params)
+        this.onClicked(extension.id, props.id, props.parentId, webContents, params)
       },
     }
 
@@ -317,6 +317,7 @@ export class ContextMenusAPI {
   private onClicked(
     extensionId: string,
     menuItemId: string,
+    parentMenuItemId: string | number | undefined,
     webContents: Electron.WebContents,
     params?: Electron.ContextMenuParams,
   ) {
@@ -340,7 +341,7 @@ export class ContextMenusAPI {
       wasChecked: false, // TODO
       pageUrl: params?.pageURL as any, // types are inaccurate
       linkUrl: params?.linkURL,
-      parentMenuItemId: -1, // TODO
+      parentMenuItemId,
       srcUrl: params?.srcURL,
     }
 

@@ -51,6 +51,22 @@ describe('chrome.contextMenus', () => {
       expect(items[0].submenu!.items[0].label).to.equal('child')
     })
 
+    it('emits parentMenuItemId for child item clicks', async () => {
+      const parentId = uuid()
+      const id = uuid()
+      await browser.crx.exec('contextMenus.create', { id: parentId, title: 'parent' })
+      await browser.crx.exec('contextMenus.create', { id, parentId, title: 'child' })
+
+      const items = await getContextMenuItems()
+      const clickPromise = browser.crx.eventOnce('contextMenus.onClicked')
+
+      items[0].submenu!.items[0].click()
+
+      const [info] = await clickPromise
+      expect(info.menuItemId).to.equal(id)
+      expect(info.parentMenuItemId).to.equal(parentId)
+    })
+
     it('groups multiple top-level items', async () => {
       await browser.crx.exec('contextMenus.create', { id: uuid(), title: 'one' })
       await browser.crx.exec('contextMenus.create', { id: uuid(), title: 'two' })
