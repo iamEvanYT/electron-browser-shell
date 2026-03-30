@@ -2,38 +2,51 @@ import { ipcRenderer } from 'electron'
 
 const formatIpcName = (name: string) => `crx-${name}`
 
-const listenerMap = new Map<string, number>()
+const listenerMap = new Map<string, Map<Function, (...args: any[]) => void>>()
 
 export const addExtensionListener = (extensionId: string, name: string, callback: Function) => {
-  const listenerCount = listenerMap.get(name) || 0
+  let listeners = listenerMap.get(name)
+  if (!listeners) {
+    listeners = new Map()
+    listenerMap.set(name, listeners)
+  }
 
-  if (listenerCount === 0) {
+  if (listeners.has(callback)) {
+    return
+  }
+
+  if (listeners.size === 0) {
     // TODO: should these IPCs be batched in a microtask?
     ipcRenderer.send('crx-add-listener', extensionId, name)
   }
 
-  listenerMap.set(name, listenerCount + 1)
-
-  ipcRenderer.addListener(formatIpcName(name), function (event, ...args) {
+  const wrappedCallback = function (_event: Electron.IpcRendererEvent, ...args: any[]) {
     if (process.env.NODE_ENV === 'development') {
       console.log(name, '(result)', ...args)
     }
     callback(...args)
-  })
+  }
+
+  listeners.set(callback, wrappedCallback)
+  ipcRenderer.addListener(formatIpcName(name), wrappedCallback)
 }
 
 export const removeExtensionListener = (extensionId: string, name: string, callback: any) => {
-  if (listenerMap.has(name)) {
-    const listenerCount = listenerMap.get(name) || 0
-
-    if (listenerCount <= 1) {
-      listenerMap.delete(name)
-
-      ipcRenderer.send('crx-remove-listener', extensionId, name)
-    } else {
-      listenerMap.set(name, listenerCount - 1)
-    }
+  const listeners = listenerMap.get(name)
+  if (!listeners) {
+    return
   }
 
-  ipcRenderer.removeListener(formatIpcName(name), callback)
+  const wrappedCallback = listeners.get(callback)
+  if (!wrappedCallback) {
+    return
+  }
+
+  ipcRenderer.removeListener(formatIpcName(name), wrappedCallback)
+  listeners.delete(callback)
+
+  if (listeners.size === 0) {
+    listenerMap.delete(name)
+    ipcRenderer.send('crx-remove-listener', extensionId, name)
+  }
 }
