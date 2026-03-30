@@ -727,10 +727,10 @@ export const injectExtensionAPIs = () => {
       })
     })
 
-    // Remove access to internals
+    // Remove access to internals.
+    // Do not freeze `chrome`: Electron may need to materialize native APIs
+    // onto the same object again when an extension context is reloaded.
     delete (globalThis as any).electron
-
-    Object.freeze(chrome)
 
     void 0 // no return
   }
