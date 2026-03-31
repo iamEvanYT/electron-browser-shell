@@ -18,6 +18,10 @@ export class RuntimeAPI extends EventEmitter {
     handle('runtime.sendNativeMessage', this.sendNativeMessage, { permission: 'nativeMessaging' })
   }
 
+  async dispatchInstalled(extensionId: string, details: chrome.runtime.InstalledDetails) {
+    return await this.ctx.router.queueAndSendEvent(extensionId, 'runtime.onInstalled', details)
+  }
+
   private connectNative = async (
     event: ExtensionEvent,
     connectionId: string,

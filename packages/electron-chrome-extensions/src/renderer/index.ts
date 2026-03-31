@@ -513,6 +513,7 @@ export const injectExtensionAPIs = () => {
       runtime: {
         factory: (base) => {
           return patchApiObject(base, {
+            onInstalled: new ExtensionEvent('runtime.onInstalled'),
             connectNative: (application: string) => {
               const port = new NativePort()
               const receive = port._receive.bind(port)

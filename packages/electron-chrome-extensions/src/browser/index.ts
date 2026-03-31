@@ -276,6 +276,15 @@ export class ElectronChromeExtensions extends EventEmitter {
   }
 
   /**
+   * Dispatches the 'runtime.onInstalled' event to the given extension.
+   * @param extensionId - The ID of the extension to dispatch the event to.
+   * @param details - The details of the installation.
+   */
+  async dispatchRuntimeInstalled(extensionId: string, details: chrome.runtime.InstalledDetails) {
+    return await this.api.runtime.dispatchInstalled(extensionId, details)
+  }
+
+  /**
    * Handles the 'crx://' protocol in the session.
    *
    * @deprecated Call `ElectronChromeExtensions.handleCRXProtocol(session)`

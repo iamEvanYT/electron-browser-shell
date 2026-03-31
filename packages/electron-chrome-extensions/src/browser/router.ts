@@ -1,5 +1,6 @@
 import { app, ipcMain, Session } from 'electron'
 import debug from 'debug'
+import { EventEmitter } from 'node:events'
 
 import { resolvePartition } from './partition'
 
@@ -216,6 +217,8 @@ const eventListenerEquals = (a: EventListener) => (b: EventListener) => {
 }
 
 export class ExtensionRouter {
+  private internalEmitter: EventEmitter
+
   private handlers: HandlerMap = new Map()
   private listeners: Map<EventName, EventListener[]> = new Map()
 
@@ -234,6 +237,8 @@ export class ExtensionRouter {
     public session: Electron.Session,
     private delegate: RoutingDelegate = RoutingDelegate.get(),
   ) {
+    this.internalEmitter = new EventEmitter()
+
     this.delegate.addObserver(this)
 
     const sessionExtensions = session.extensions || session
@@ -319,6 +324,7 @@ export class ExtensionRouter {
       if (listener.type === 'frame' && listener.host) {
         this.observeListenerHost(listener.host)
       }
+      this.internalEmitter.emit('new-listener', extensionId, eventName)
     }
   }
 
@@ -409,21 +415,60 @@ export class ExtensionRouter {
     }
   }
 
+  async waitForListener(
+    targetExtensionId: string | undefined,
+    targetEventName: string | undefined,
+  ) {
+    return new Promise<void>((resolve) => {
+      const handler = (extensionId: string, eventName: string) => {
+        const passExtensionId = targetExtensionId === undefined || extensionId === targetExtensionId
+        const passEventName = targetEventName === undefined || eventName === targetEventName
+        if (passExtensionId && passEventName) {
+          this.internalEmitter.removeListener('new-listener', handler)
+          resolve()
+        }
+      }
+      this.internalEmitter.addListener('new-listener', handler)
+    })
+  }
+
+  async queueAndSendEvent(
+    targetExtensionId: string | undefined,
+    eventName: string,
+    ...args: any[]
+  ) {
+    const { listeners } = this
+    let eventListeners = listeners.get(eventName)
+
+    while (!eventListeners || eventListeners.length === 0) {
+      await this.waitForListener(targetExtensionId, eventName)
+      eventListeners = listeners.get(eventName)
+    }
+
+    return await this.sendEventAsync(targetExtensionId, eventName, ...args)
+  }
+
   /**
    * Sends extension event to the host for the given extension ID if it
    * registered a listener for it.
    */
   sendEvent(targetExtensionId: string | undefined, eventName: string, ...args: any[]) {
+    this.sendEventAsync(targetExtensionId, eventName, ...args)
+  }
+
+  async sendEventAsync(targetExtensionId: string | undefined, eventName: string, ...args: any[]) {
     const { listeners } = this
     let eventListeners = listeners.get(eventName)
     const ipcName = `crx-${eventName}`
 
     if (!eventListeners || eventListeners.length === 0) {
       // Ignore events with no listeners
-      return
+      return true
     }
 
     let sentCount = 0
+    let allListenersSuccessful = true
+    const promises: Promise<void>[] = []
     for (const listener of eventListeners) {
       const { type, extensionId } = listener
 
@@ -433,7 +478,7 @@ export class ExtensionRouter {
 
       if (type === 'service-worker') {
         const scope = `chrome-extension://${extensionId}/`
-        this.session.serviceWorkers
+        const promise = this.session.serviceWorkers
           .startWorkerForScope(scope)
           .then((serviceWorker) => {
             serviceWorker.send(ipcName, ...args)
@@ -441,19 +486,25 @@ export class ExtensionRouter {
           .catch((error) => {
             d('failed to send %s to %s', eventName, extensionId)
             console.error(error)
+            allListenersSuccessful = false
           })
+        promises.push(promise)
       } else {
         if (listener.host.isDestroyed()) {
           console.error(`Unable to send '${eventName}' to extension host for ${extensionId}`)
-          return
+          allListenersSuccessful = false
+        } else {
+          listener.host.send(ipcName, ...args)
         }
-        listener.host.send(ipcName, ...args)
       }
 
       sentCount++
     }
 
+    await Promise.all(promises)
+
     d(`sent '${eventName}' event to ${sentCount} listeners`)
+    return allListenersSuccessful
   }
 
   /** Broadcasts extension event to all extension hosts listening for it. */
