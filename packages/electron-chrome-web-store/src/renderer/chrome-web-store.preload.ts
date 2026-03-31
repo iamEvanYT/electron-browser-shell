@@ -68,11 +68,30 @@ function getUAProductVersion(userAgent: string, product: string) {
 
 function overrideUserAgent() {
   const chromeVersion = getUAProductVersion(navigator.userAgent, 'Chrome') || '133.0.6920.0'
+  const chromeMajorVersion = chromeVersion.split('.')[0]
   const userAgent = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`
   webFrame.executeJavaScript(
-    `(${function (userAgent: string) {
+    `(${function (userAgent: string, chromeMajorVersion: string) {
       Object.defineProperty(navigator, 'userAgent', { value: userAgent })
-    }})(${JSON.stringify(userAgent)});`,
+      const brands = [
+        { brand: 'Chromium', version: chromeMajorVersion },
+        { brand: 'Not-A.Brand', version: '24' },
+        { brand: 'Google Chrome', version: chromeMajorVersion },
+      ]
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: {
+          brands,
+          mobile: false,
+          platform: 'macOS',
+          getHighEntropyValues: (hints: string[]) =>
+            Promise.resolve({
+              brands,
+              mobile: false,
+              platform: 'macOS',
+            }),
+        },
+      })
+    }})(${JSON.stringify(userAgent)}, ${JSON.stringify(chromeMajorVersion)});`,
   )
 }
 
