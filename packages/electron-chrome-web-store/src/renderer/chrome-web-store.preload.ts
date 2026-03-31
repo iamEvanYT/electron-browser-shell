@@ -277,12 +277,21 @@ function setupChromeWebStoreApi() {
         ipcRenderer.removeListener('chrome.management.onUninstalled', callback)
       },
     },
-    getAll: (callback: (extensions: any[]) => void) => {
+    getAll: (callback?: (extensions: any[]) => void) => {
       log('chrome.management.getAll called')
-      ipcRenderer.invoke('chrome.management.getAll').then((result) => {
-        log('chrome.management.getAll result:', result)
-        callback(result)
-      })
+      if (callback) {
+        ipcRenderer.invoke('chrome.management.getAll').then((result) => {
+          log('chrome.management.getAll result:', result)
+          callback(result)
+        })
+      } else {
+        return new Promise((resolve) => {
+          ipcRenderer.invoke('chrome.management.getAll').then((result) => {
+            log('chrome.management.getAll result:', result)
+            resolve(result)
+          })
+        })
+      }
     },
     setEnabled: async (id: string, enabled: boolean) => {
       log('chrome.management.setEnabled', { id, enabled })

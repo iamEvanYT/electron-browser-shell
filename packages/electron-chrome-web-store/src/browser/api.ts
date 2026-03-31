@@ -276,7 +276,7 @@ export function registerWebStoreApi(webStoreState: WebStoreState) {
     return ''
   })
   handle('chromeWebstore.getExtensionStatus', async (_event, id, manifestJson) => {
-    const manifest = JSON.parse(manifestJson)
+    const manifest = manifestJson ? JSON.parse(manifestJson) : undefined
     return getExtensionInstallStatus(webStoreState, id, manifest)
   })
 
