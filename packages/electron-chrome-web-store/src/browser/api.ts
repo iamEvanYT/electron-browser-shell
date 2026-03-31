@@ -343,8 +343,12 @@ export function registerWebStoreApi(webStoreState: WebStoreState) {
 
   handle('chrome.management.getAll', async (event) => {
     const sessionExtensions = webStoreState.session.extensions || webStoreState.session
-    const extensions = sessionExtensions.getAllExtensions()
-    return extensions.map(getExtensionInfo)
+    if (webStoreState.getAllExtensions) {
+      return await webStoreState.getAllExtensions()
+    } else {
+      const extensions = sessionExtensions.getAllExtensions()
+      return extensions.map(getExtensionInfo)
+    }
   })
 
   handle('chrome.management.setEnabled', async (event, id, enabled) => {

@@ -46,4 +46,42 @@ export interface WebStoreState {
   afterUninstall?: AfterUninstall
   setExtensionEnabled?: SetExtensionEnabled
   getExtensionInstallStatus?: GetExtensionInstallStatus
+  getAllExtensions?: () => Promise<ChromeWebStoreExtensionInfo[]>
+}
+
+interface ChromeWebStoreExtensionIcon {
+  size: number
+  url: string
+}
+export interface ChromeWebStoreExtensionInfo {
+  // Identity
+  id: string
+  name: string
+  shortName: string
+  description: string
+  version: string
+  versionName?: string
+  type: 'extension'
+
+  // State
+  enabled: boolean
+  // not sure about this one, so string is also allowed.
+  disabledReason?: 'unknown' | 'permissions_increase' | (string & {})
+  installType: 'normal' | 'sideload' | 'development'
+  isApp: boolean
+  offlineEnabled: boolean
+  mayDisable: boolean
+  mayEnable?: boolean
+
+  // Permissions
+  permissions: string[]
+  hostPermissions: string[]
+
+  // URLs
+  homepageUrl: string
+  optionsUrl: string
+  updateUrl?: string
+
+  // Assets
+  icons: ChromeWebStoreExtensionIcon[]
 }

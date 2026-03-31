@@ -18,6 +18,7 @@ import {
   GetExtensionInstallStatus,
   AfterUninstall,
   SetExtensionEnabled,
+  ChromeWebStoreExtensionInfo,
 } from './types'
 import { ExtensionInstallStatus } from '../common/constants'
 export { ExtensionInstallStatus }
@@ -119,6 +120,12 @@ interface ElectronChromeWebStoreOptions {
   getExtensionInstallStatus?: GetExtensionInstallStatus
 
   /**
+   * Override how the package gets info about all extensions.
+   * Defaults to using the session's `getAllExtensions` method if not provided.
+   */
+  getAllExtensions?: () => Promise<ChromeWebStoreExtensionInfo[]>
+
+  /**
    * Called after an extension is installed.
    */
   afterInstall?: AfterInstall
@@ -156,6 +163,9 @@ export async function installChromeWebStore(opts: ElectronChromeWebStoreOptions 
       ? opts.getExtensionInstallStatus
       : undefined
 
+  const getAllExtensions =
+    typeof opts.getAllExtensions === 'function' ? opts.getAllExtensions : undefined
+
   const webStoreState: WebStoreState = {
     session,
     extensionsPath,
@@ -168,6 +178,7 @@ export async function installChromeWebStore(opts: ElectronChromeWebStoreOptions 
     afterUninstall,
     setExtensionEnabled,
     getExtensionInstallStatus,
+    getAllExtensions,
   }
 
   // Add preload script to session
