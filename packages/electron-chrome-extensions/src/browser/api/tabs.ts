@@ -91,15 +91,17 @@ export class TabsAPI {
     if (win?.isDestroyed()) win = undefined
     const [width = 0, height = 0] = win ? win.getSize() : []
 
+    const isActive = activeTab?.id === tabId
     const details: chrome.tabs.Tab = {
-      active: activeTab?.id === tabId,
+      active: isActive,
       audible: tab.isCurrentlyAudible(),
       autoDiscardable: true,
       discarded: false,
       favIconUrl: tab.favicon || undefined,
       frozen: false,
       height,
-      highlighted: false,
+      // TODO: handle highlighted
+      highlighted: isActive,
       id: tabId,
       incognito: false,
       index: -1, // TODO
