@@ -5,7 +5,7 @@ type EventWithDispatch<T> = T & {
   dispatch: (...args: any[]) => void
 }
 
-export const injectExtensionAPIs = () => {
+export const injectExtensionAPIs = (runInMainWorld: boolean) => {
   interface ExtensionMessageOptions {
     noop?: boolean
     defaultResponse?: any
@@ -95,7 +95,7 @@ export const injectExtensionAPIs = () => {
 
   // Function body to run in the main world.
   // IMPORTANT: This must be self-contained, no closure variable will be included!
-  function mainWorldScript() {
+  function mainWorldScript(isContentScript: boolean = false) {
     // Use context bridge API or closure variable when context isolation is disabled.
     const electron = ((globalThis as any).electron as typeof electronContext) || electronContext
 
@@ -318,7 +318,8 @@ export const injectExtensionAPIs = () => {
       },
 
       browserAction: {
-        shouldInject: () => manifest.manifest_version === 2 && !!manifest.browser_action,
+        shouldInject: () =>
+          manifest.manifest_version === 2 && !!manifest.browser_action && !isContentScript,
         factory: browserActionFactory,
       },
 
@@ -333,6 +334,7 @@ export const injectExtensionAPIs = () => {
       },
 
       contextMenus: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           let menuCounter = 0
           const menuCallbacks: {
@@ -379,6 +381,7 @@ export const injectExtensionAPIs = () => {
       },
 
       cookies: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           return {
             ...base,
@@ -394,6 +397,7 @@ export const injectExtensionAPIs = () => {
 
       // TODO: implement
       downloads: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           return {
             ...base,
@@ -430,6 +434,8 @@ export const injectExtensionAPIs = () => {
               noop: true,
               defaultResponse: false,
             }),
+            // TODO: Implement incognito mode check
+            inIncognitoContext: false,
             // TODO: Add native implementation
             getViews: () => [],
           }
@@ -461,6 +467,7 @@ export const injectExtensionAPIs = () => {
       },
 
       notifications: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           return {
             ...base,
@@ -477,6 +484,7 @@ export const injectExtensionAPIs = () => {
       },
 
       permissions: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           return {
             ...base,
@@ -491,6 +499,7 @@ export const injectExtensionAPIs = () => {
       },
 
       privacy: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           return {
             ...base,
@@ -598,6 +607,7 @@ export const injectExtensionAPIs = () => {
       },
 
       tabs: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           const api = {
             ...base,
@@ -646,6 +656,7 @@ export const injectExtensionAPIs = () => {
       },
 
       topSites: {
+        shouldInject: () => !isContentScript,
         factory: () => {
           return {
             get: invokeExtension('topSites.get', { noop: true, defaultResponse: [] }),
@@ -654,6 +665,7 @@ export const injectExtensionAPIs = () => {
       },
 
       webNavigation: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           return {
             ...base,
@@ -677,6 +689,7 @@ export const injectExtensionAPIs = () => {
       },
 
       webRequest: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           return {
             ...base,
@@ -686,6 +699,7 @@ export const injectExtensionAPIs = () => {
       },
 
       windows: {
+        shouldInject: () => !isContentScript,
         factory: (base) => {
           return {
             ...base,
@@ -743,17 +757,27 @@ export const injectExtensionAPIs = () => {
   }
 
   try {
-    // Expose extension IPC to main world
-    contextBridge.exposeInMainWorld('electron', electronContext)
+    if (runInMainWorld) {
+      // Expose extension IPC to main world
+      contextBridge.exposeInMainWorld('electron', electronContext)
 
-    // Mutate global 'chrome' object with additional APIs in the main world.
-    if ('executeInMainWorld' in contextBridge) {
-      ;(contextBridge as any).executeInMainWorld({
-        func: mainWorldScript,
-      })
-    } else {
-      // TODO(mv3): remove webFrame usage
-      webFrame.executeJavaScript(`(${mainWorldScript}());`)
+      // Mutate global 'chrome' object with additional APIs in the main world.
+      if ('executeInMainWorld' in contextBridge) {
+        ;(contextBridge as any).executeInMainWorld({
+          func: mainWorldScript,
+        })
+      } else {
+        // TODO(mv3): remove webFrame usage
+        webFrame.executeJavaScript(`(${mainWorldScript}());`)
+      }
+    }
+
+    return (worldId: number) => {
+      // Expose extension IPC to isolated worlds
+      contextBridge.exposeInIsolatedWorld(worldId, 'electron', electronContext)
+
+      // Mutate global 'chrome' object with additional APIs in the isolated world.
+      webFrame.executeJavaScriptInIsolatedWorld(worldId, [{ code: `(${mainWorldScript}(true));` }])
     }
   } catch (error) {
     console.error(`injectExtensionAPIs error (${location.href})`)
