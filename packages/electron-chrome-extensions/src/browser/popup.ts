@@ -115,8 +115,9 @@ export class PopupView extends EventEmitter {
     if (this.destroyed) return
 
     if (this.usingPreferredSize) {
-      // Set small initial size so the preferred size grows to what's needed
-      this.setSize({ width: PopupView.BOUNDS.minWidth, height: PopupView.BOUNDS.minHeight })
+      // Keep the popup large while hidden so initial layout happens at a
+      // realistic viewport size before Electron reports the preferred size.
+      this.setSize({ width: PopupView.BOUNDS.maxWidth, height: PopupView.BOUNDS.maxHeight })
     } else {
       // Set large initial size to avoid overflow
       this.setSize({ width: PopupView.BOUNDS.maxWidth, height: PopupView.BOUNDS.maxHeight })
@@ -174,6 +175,8 @@ export class PopupView extends EventEmitter {
   setSize(rect: Partial<Electron.Rectangle>) {
     if (!this.browserWindow || !this.parent) return
 
+    const currentBounds = this.browserWindow.getContentBounds()
+
     const width = Math.floor(
       Math.min(PopupView.BOUNDS.maxWidth, Math.max(rect.width || 0, PopupView.BOUNDS.minWidth)),
     )
@@ -187,10 +190,7 @@ export class PopupView extends EventEmitter {
 
     this.emit('will-resize', size)
 
-    this.browserWindow?.setContentBounds({
-      ...this.browserWindow.getContentBounds(),
-      ...size,
-    })
+    this.browserWindow?.setContentBounds({ ...currentBounds, ...size })
 
     this.emit('resized')
   }
