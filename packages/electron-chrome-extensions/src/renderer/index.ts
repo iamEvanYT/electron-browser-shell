@@ -41,6 +41,9 @@ export const injectExtensionAPIs = (runInMainWorld: boolean) => {
     } catch (e) {
       // TODO: Set chrome.runtime.lastError?
       console.error(e)
+      if (!callback) {
+        throw e
+      }
       result = undefined
     }
 

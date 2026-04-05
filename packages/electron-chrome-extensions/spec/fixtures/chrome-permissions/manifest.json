@@ -1,0 +1,17 @@
+{
+  "name": "chrome-permissions",
+  "version": "1.0",
+  "manifest_version": 2,
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+  "permissions": ["storage"],
+  "optional_permissions": ["clipboardRead", "https://optional.example.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://script.example.com/foo/*"],
+      "js": ["content-script.js"]
+    }
+  ]
+}
