@@ -100,6 +100,7 @@ export const injectExtensionAPIs = (runInMainWorld: boolean) => {
     const electron = ((globalThis as any).electron as typeof electronContext) || electronContext
 
     const chrome = globalThis.chrome || {}
+    const browser = (globalThis as any).browser as typeof chrome | undefined
     const extensionId = chrome.runtime?.id
 
     // NOTE: This uses a synchronous IPC to get the extension manifest.
@@ -741,6 +742,15 @@ export const injectExtensionAPIs = (runInMainWorld: boolean) => {
         configurable: true,
       })
     })
+
+    // Mirror `chrome` object to `browser` object
+    if (browser && browser !== chrome) {
+      Object.defineProperty(globalThis, 'browser', {
+        value: chrome,
+        enumerable: true,
+        configurable: true,
+      })
+    }
 
     // Remove access to internals.
     // Do not freeze `chrome`: Electron may need to materialize native APIs
