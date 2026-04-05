@@ -125,6 +125,19 @@ describe('chrome.browserAction', () => {
       const [popup] = await popupPromise
       expect(popup.extensionId).to.equal(browser.extension.id)
     })
+
+    it('returns undefined from tabs.getCurrent in popup context', async () => {
+      const popupPromise = emittedOnce(browser.extensions, 'browser-action-popup-created')
+      await activateExtension(browser.partition, browser.window.webContents, browser.extension)
+      const [popup] = await popupPromise
+      await popup.whenReady()
+
+      const result = await popup.browserWindow.webContents.executeJavaScript(
+        `(async () => chrome.tabs.getCurrent())()`,
+      )
+
+      expect(result).to.equal(undefined)
+    })
   })
 
   describe('details', () => {

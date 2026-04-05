@@ -32,9 +32,9 @@ describe('chrome.tabs', () => {
   })
 
   describe('getCurrent()', () => {
-    it('gets details of the active tab', async () => {
+    it('returns no tab details in background context', async () => {
       const result = await browser.crx.exec('tabs.getCurrent')
-      expect(result).to.be.an('object')
+      expect(result).to.equal(null)
     })
   })
 

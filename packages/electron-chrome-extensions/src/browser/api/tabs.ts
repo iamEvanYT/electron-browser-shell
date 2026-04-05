@@ -154,7 +154,9 @@ export class TabsAPI {
   }
 
   private getCurrent(event: ExtensionEvent) {
-    const tab = this.ctx.store.getActiveTabOfCurrentWindow()
+    if (event.type !== 'frame') return undefined
+
+    const tab = this.ctx.store.tabs.has(event.sender) ? event.sender : undefined
     return tab ? this.getTabDetails(tab) : undefined
   }
 
