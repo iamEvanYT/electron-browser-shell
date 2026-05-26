@@ -224,12 +224,12 @@ export class TabsAPI {
         // if (isSet(info.index) && info.index !== tab.index) return false
         return true
       })
-      .map((tab, index) => {
-        if (tab) {
-          tab.index = index
-        }
-        return tab
-      })
+    // .map((tab, index) => {
+    //   if (tab) {
+    //     tab.index = index
+    //   }
+    //   return tab
+    // })
     return filteredTabs
   }
 
