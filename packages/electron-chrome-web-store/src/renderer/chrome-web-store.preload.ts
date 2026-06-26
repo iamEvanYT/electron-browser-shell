@@ -348,7 +348,14 @@ function setupChromeWebStoreApi() {
   }
 }
 
-if (location.href.startsWith('https://chromewebstore.google.com')) {
+function isChromeWebStoreOrigin(value: string) {
+  try {
+    return new URL(value).origin === 'https://chromewebstore.google.com'
+  } catch {
+    return false
+  }
+}
+if (isChromeWebStoreOrigin(location.href)) {
   log('Injecting Chrome Web Store API')
   setupChromeWebStoreApi()
 }
