@@ -16,6 +16,22 @@ import { findExtensionInstall } from './loader'
 import { AfterUninstall, ExtensionId } from './types'
 
 const d = debug('electron-chrome-web-store:installer')
+const CHROME_EXTENSION_ID_PATTERN = /^[a-p]{32}$/
+
+function resolveExtensionInstallPath(extensionsPath: string, extensionId: string): string {
+  if (!CHROME_EXTENSION_ID_PATTERN.test(extensionId)) {
+    throw new Error(`Invalid extension id: ${extensionId}`)
+  }
+
+  const root = path.resolve(extensionsPath)
+  const extensionPath = path.resolve(root, extensionId)
+  const rootWithSeparator = root.endsWith(path.sep) ? root : `${root}${path.sep}`
+  if (extensionPath !== root && !extensionPath.startsWith(rootWithSeparator)) {
+    throw new Error(`Extension path escapes install root: ${extensionId}`)
+  }
+
+  return extensionPath
+}
 
 function getExtensionCrxURL(extensionId: ExtensionId) {
   const url = new URL('https://clients2.google.com/service/update2/crx')
@@ -257,7 +273,7 @@ export async function uninstallExtension(extensionId: string, opts: CommonExtens
     sessionExtensions.removeExtension(extensionId)
   }
 
-  const extensionDir = path.join(extensionsPath, extensionId)
+  const extensionDir = resolveExtensionInstallPath(extensionsPath, extensionId)
   try {
     const stat = await fs.promises.stat(extensionDir)
     if (stat.isDirectory()) {
