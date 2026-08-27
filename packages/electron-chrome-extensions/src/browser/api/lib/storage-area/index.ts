@@ -19,10 +19,7 @@ interface SetStorageAdapterTask {
   items: Record<string, any>
 }
 type StorageAdapterTask =
-  | ClearStorageAdapterTask
-  | GetStorageAdapterTask
-  | RemoveStorageAdapterTask
-  | SetStorageAdapterTask
+  ClearStorageAdapterTask | GetStorageAdapterTask | RemoveStorageAdapterTask | SetStorageAdapterTask
 
 // Task result types
 interface StorageAdapterTaskResult {
@@ -181,6 +178,12 @@ export function registerStorageAreaHandlers(
   areaName: string,
   router: ExtensionRouter,
   getArea: (event: ExtensionEvent) => StorageArea,
+  options: {
+    /** Allows an area to deny operations from otherwise valid extension contexts. */
+    canAccess?: (event: ExtensionEvent, area: StorageArea) => boolean
+    /** Limits setAccessLevel to the area's trusted contexts. */
+    canSetAccessLevel?: (event: ExtensionEvent, area: StorageArea) => boolean
+  } = {},
 ) {
   const handle = router.apiHandler()
   const eventName = `storage.${areaName}.onChanged`
@@ -205,28 +208,53 @@ export function registerStorageAreaHandlers(
     return area
   }
 
+  const resolveAccessibleArea = (event: ExtensionEvent) => {
+    const area = resolveArea(event)
+    if (options.canAccess && !options.canAccess(event, area)) {
+      throw new Error('Access to storage is not allowed from this context.')
+    }
+    return area
+  }
+
   const storagePermission = { permission: 'storage' } as const
-  handle(`storage.${areaName}.clear`, (event) => resolveArea(event).clear(), storagePermission)
+  handle(
+    `storage.${areaName}.clear`,
+    (event) => resolveAccessibleArea(event).clear(),
+    storagePermission,
+  )
   handle(
     `storage.${areaName}.get`,
-    (event, keys) => resolveArea(event).get(keys),
+    (event, keys) => resolveAccessibleArea(event).get(keys),
     storagePermission,
   )
   handle(
     `storage.${areaName}.getBytesInUse`,
-    (event, keys) => resolveArea(event).getBytesInUse(keys),
+    (event, keys) => resolveAccessibleArea(event).getBytesInUse(keys),
     storagePermission,
   )
-  handle(`storage.${areaName}.getKeys`, (event) => resolveArea(event).getKeys(), storagePermission)
-  handle(`storage.${areaName}.remove`, (event, keys) => resolveArea(event).remove(keys))
+  handle(
+    `storage.${areaName}.getKeys`,
+    (event) => resolveAccessibleArea(event).getKeys(),
+    storagePermission,
+  )
+  handle(`storage.${areaName}.remove`, (event, keys) => resolveAccessibleArea(event).remove(keys))
   handle(
     `storage.${areaName}.set`,
-    (event, items) => resolveArea(event).set(items),
+    (event, items) => resolveAccessibleArea(event).set(items),
     storagePermission,
   )
   handle(
     `storage.${areaName}.setAccessLevel`,
-    (event, accessOptions) => resolveArea(event).setAccessLevel(accessOptions),
+    (event, accessOptions) => {
+      const area = resolveArea(event)
+      if (options.canSetAccessLevel && !options.canSetAccessLevel(event, area)) {
+        throw new Error('Context cannot set the storage access level')
+      }
+      if (options.canAccess && !options.canAccess(event, area)) {
+        throw new Error('Access to storage is not allowed from this context.')
+      }
+      return area.setAccessLevel(accessOptions)
+    },
     storagePermission,
   )
 }

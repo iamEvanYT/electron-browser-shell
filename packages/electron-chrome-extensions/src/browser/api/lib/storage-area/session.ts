@@ -10,6 +10,11 @@ interface SessionState {
   store: StorageItems
 }
 
+export type SessionStorageAccessLevel = 'TRUSTED_CONTEXTS' | 'TRUSTED_AND_UNTRUSTED_CONTEXTS'
+
+const TRUSTED_CONTEXTS: SessionStorageAccessLevel = 'TRUSTED_CONTEXTS'
+const TRUSTED_AND_UNTRUSTED_CONTEXTS: SessionStorageAccessLevel = 'TRUSTED_AND_UNTRUSTED_CONTEXTS'
+
 function createSessionStorageAdapter(state: SessionState): StorageAdapter {
   return async (task) => {
     switch (task.type) {
@@ -64,6 +69,7 @@ function createSessionStorageAdapter(state: SessionState): StorageAdapter {
 
 export class SessionStorageArea extends StorageArea {
   private state: SessionState = { store: {} }
+  private accessLevel: SessionStorageAccessLevel = TRUSTED_CONTEXTS
 
   constructor() {
     // Create adapter with a temporary state, then replace after super()
@@ -75,5 +81,18 @@ export class SessionStorageArea extends StorageArea {
   /** Clear in-memory state (called on extension unload). */
   resetCache() {
     this.state.store = {}
+  }
+
+  allowsUntrustedContexts() {
+    return this.accessLevel === TRUSTED_AND_UNTRUSTED_CONTEXTS
+  }
+
+  async setAccessLevel(accessOptions: { accessLevel: chrome.storage.AccessLevel }) {
+    const accessLevel = accessOptions?.accessLevel
+    if (accessLevel !== TRUSTED_CONTEXTS && accessLevel !== TRUSTED_AND_UNTRUSTED_CONTEXTS) {
+      throw new TypeError(`Invalid storage.session access level: ${String(accessLevel)}`)
+    }
+
+    this.accessLevel = accessLevel
   }
 }

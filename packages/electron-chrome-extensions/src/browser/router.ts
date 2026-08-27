@@ -176,7 +176,17 @@ type ExtendedExtension = Omit<Electron.Extension, 'manifest'> & {
 }
 
 export type ExtensionEvent =
-  | { type: 'frame'; sender: Electron.WebContents; extension: ExtendedExtension }
+  | {
+      type: 'frame'
+      sender: Electron.WebContents
+      /**
+       * The URL of the frame which invoked the IPC. This is deliberately
+       * captured in the main process: a content script's extension ID is not
+       * enough to establish that it is an extension document.
+       */
+      senderFrameUrl?: string
+      extension: ExtendedExtension
+    }
   | { type: 'service-worker'; sender: Electron.ServiceWorkerMain; extension: ExtendedExtension }
 
 export type HandlerCallback = (event: ExtensionEvent, ...args: any[]) => any
@@ -389,7 +399,15 @@ export class ExtensionRouter {
 
     const extEvent: ExtensionEvent =
       event.type === 'frame'
-        ? { type: event.type, sender: event.sender, extension: extension! }
+        ? {
+            type: event.type,
+            sender: event.sender,
+            // senderFrame is not available on older Electron typings, but it
+            // is available at runtime for frame IPC. Do not fall back to the
+            // WebContents URL: an IPC can originate from a child frame.
+            senderFrameUrl: (event as any).senderFrame?.url,
+            extension: extension!,
+          }
         : { type: event.type, sender: event.serviceWorker, extension: extension! }
 
     const result = await handler.callback(extEvent, ...args)

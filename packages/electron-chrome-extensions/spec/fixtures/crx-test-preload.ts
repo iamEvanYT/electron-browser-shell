@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
 import { injectBrowserAction } from '../../src/browser-action'
 
 // This should go without saying, but you should never do this in a production
@@ -11,7 +11,15 @@ const api = {
   invokeIpc(channel: string, ...args: any[]) {
     return ipcRenderer.invoke(channel, ...args)
   },
+  supportsExtensionIsolatedWorldInjection:
+    !!webFrame && 'getIsolatedWorlds' in webFrame && 'executeJavaScriptInIsolatedWorld' in webFrame,
 }
+
+window.addEventListener('message', (event) => {
+  const report = event.data
+  if (event.source !== window || report?.type !== 'crx-test-result') return
+  ipcRenderer.send(report.channel, report.payload)
+})
 
 try {
   contextBridge.exposeInMainWorld(apiName, api)

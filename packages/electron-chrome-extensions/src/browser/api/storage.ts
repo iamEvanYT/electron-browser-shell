@@ -17,7 +17,12 @@ export class StorageAPI {
   private sessionAreas = new Map<string, SessionStorageArea>()
 
   constructor(private ctx: ExtensionContext) {
-    registerStorageAreaHandlers('session', this.ctx.router, this.getSessionArea)
+    registerStorageAreaHandlers('session', this.ctx.router, this.getSessionArea, {
+      canAccess: (event, area) =>
+        this.isTrustedSessionContext(event) ||
+        (area as SessionStorageArea).allowsUntrustedContexts(),
+      canSetAccessLevel: (event) => this.isTrustedSessionContext(event),
+    })
 
     const sessionExtensions = ctx.session.extensions || ctx.session
     sessionExtensions.on('extension-unloaded', (_event, extension) => {
@@ -36,5 +41,24 @@ export class StorageAPI {
       this.sessionAreas.set(extension.id, area)
     }
     return area
+  }
+
+  /**
+   * Chrome's trusted storage.session contexts are extension documents and
+   * extension service workers. Content scripts execute in a page frame, even
+   * though their chrome.runtime.id identifies an extension, so that ID must
+   * never be used as the authorization proof.
+   *
+   * The access level deliberately shares SessionStorageArea's in-memory
+   * lifetime. Chrome has an internal preferences layer with longer-lived
+   * policy, but this package has no equivalent safe owner; grants therefore
+   * reset on extension unload and Electron session/browser teardown.
+   */
+  private isTrustedSessionContext(event: ExtensionEvent) {
+    if (event.type === 'service-worker') {
+      return event.sender.scope?.startsWith(`chrome-extension://${event.extension.id}/`) === true
+    }
+
+    return event.senderFrameUrl?.startsWith(`chrome-extension://${event.extension.id}/`) === true
   }
 }
